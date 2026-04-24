@@ -1,0 +1,25 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="MIT"
+
+[[mods]]
+modId="alltherecipes"
+version="1.0.0"
+displayName="AllTheRecipes"
+description="Automatically unlocks all crafting recipes in the recipe book"
+authors="AllTheRecipes"
+homepage="https://github.com/alltherecipes"
+
+[[dependencies.alltherecipes]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.19,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.alltherecipes]]
+modId="forge"
+mandatory=true
+versionRange="[52,)"
+ordering="NONE"
+side="BOTH"

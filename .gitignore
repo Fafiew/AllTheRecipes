@@ -1,0 +1,36 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.code-workspace
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Run outputs
+run/
+out/
+
+# Fabric
+*.accesswidener
+*.mixins.json
+
+# Forge/NeoForge
+*.cfg
+*.json
+!*.override.json
+
+# Credentials
+*.env
+*.properties
