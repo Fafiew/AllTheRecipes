@@ -7,21 +7,10 @@
  */
 
 plugins {
-    id("fabric-loom-basic")
-}
-
-val minecraftVersion: String = "1.21.4"
-
-dependencies {
-    compileOnly("com.mojang:minecraft:${minecraftVersion}")
-    compileOnly("net.fabricmc:yarn:1.21.4+build.8-v2")
+    id("java-library")
 }
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
-}
-
-loom {
-    officialMojangMappings()
 }

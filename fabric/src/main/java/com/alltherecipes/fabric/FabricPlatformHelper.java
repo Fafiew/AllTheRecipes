@@ -2,45 +2,76 @@ package com.alltherecipes.fabric;
 
 import com.alltherecipes.core.IPlatformHelper;
 import com.alltherecipes.core.RecipeUnlockerCore;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.recipe.RecipeManager;
-import net.minecraft.recipe.book.RecipeBook;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Fabric-specific implementation of the platform helper.
- * Handles Fabric-specific API for events and player interaction.
+ * Uses reflection to access Minecraft classes to avoid direct mappings dependencies.
  */
 public class FabricPlatformHelper implements IPlatformHelper {
+    
+    private static Method getInstanceMethod;
+    private static Method getRecipeBookMethod;
+    private static Method getRecipeManagerMethod;
+    private static Field recipesField;
+    private static Method isRecipeKnownMethod;
+    private static Method onRecipeDiscoveredMethod;
+    private static Method closeScreenMethod;
+    
+    static {
+        try {
+            // Get MinecraftClient class
+            Class<?> minecraftClientClass = Class.forName("net.minecraft.client.MinecraftClient");
+            getInstanceMethod = minecraftClientClass.getMethod("getInstance");
+            
+            // RecipeBook methods
+            Class<?> recipeBookClass = Class.forName("net.minecraft.client.recipe.RecipeBook");
+            getRecipeBookMethod = Class.forName("net.minecraft.client.network.ClientPlayerEntity").getMethod("getRecipeBook");
+            isRecipeKnownMethod = recipeBookClass.getMethod("containsRecipe", Class.forName("net.minecraft.recipe.Recipe"));
+            onRecipeDiscoveredMethod = recipeBookClass.getMethod("onRecipeDiscovered", 
+                Class.forName("net.minecraft.recipe.Recipe"));
+            
+            // Get recipes from RecipeManager
+            Class<?> recipeManagerClass = Class.forName("net.minecraft.recipe.RecipeManager");
+            getRecipeManagerMethod = Class.forName("net.minecraft.server.MinecraftServer").getMethod("getRecipeManager");
+            recipesField = recipeManagerClass.getField("recipes");
+            
+            // Screen methods
+            Class<?> screenClass = Class.forName("net.minecraft.client.gui.screen.Screen");
+            closeScreenMethod = screenClass.getMethod("close");
+            
+        } catch (Exception e) {
+            System.err.println("[AllTheRecipes] Error initializing reflection: " + e.getMessage());
+        }
+    }
     
     @Override
     public void unlockAllRecipes(Object player) {
         if (player == null) return;
         
         try {
-            RecipeBook recipeBook = getRecipeBook(player);
+            Object recipeBook = getRecipeBookMethod.invoke(player);
             if (recipeBook == null) {
                 System.err.println("[AllTheRecipes] Could not get recipe book for player");
                 return;
             }
             
-            Collection<Recipe<?>> recipes = getAllRecipesFromServer();
+            Collection recipes = getAllRecipes();
             
             int unlockedCount = 0;
-            for (Recipe<?> recipe : recipes) {
-                if (!recipeBook.containsRecipe(recipe)) {
-                    recipeBook.onRecipeDiscovered(recipe);
+            for (Object recipe : recipes) {
+                Boolean known = (Boolean) isRecipeKnownMethod.invoke(recipeBook, recipe);
+                if (!known) {
+                    onRecipeDiscoveredMethod.invoke(recipeBook, recipe);
                     unlockedCount++;
                 }
             }
             
-            System.out.println("[AllTheRecipes] Unlocked " + unlockedCount + " recipes for " + 
-                (player instanceof ClientPlayerEntity ? "client" : "server") + " player");
+            System.out.println("[AllTheRecipes] Unlocked " + unlockedCount + " recipes for player");
             
         } catch (Exception e) {
             System.err.println("[AllTheRecipes] Error unlocking recipes: " + e.getMessage());
@@ -50,17 +81,19 @@ public class FabricPlatformHelper implements IPlatformHelper {
     
     @Override
     public boolean isClientSide() {
-        // We're on the client if MinecraftClient instance exists and we're in a game
-        return MinecraftClient.getInstance().isInGame();
+        try {
+            Object client = getInstanceMethod.invoke(null);
+            return client != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
     
     @Override
     public void registerEventHandlers() {
-        // Register client-side player join event
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-            ClientPlayerEntity player = client.player;
-            if (player != null) {
-                RecipeUnlockerCore.onPlayerJoin(player);
+            if (client.player != null) {
+                RecipeUnlockerCore.onPlayerJoin(client.player);
             }
         });
     }
@@ -68,15 +101,11 @@ public class FabricPlatformHelper implements IPlatformHelper {
     @Override
     public void refreshRecipeBookUI(Object player) {
         try {
-            // Trigger recipe book GUI update if open
-            MinecraftClient client = MinecraftClient.getInstance();
-            
-            if (client.player != null) {
-                // If the recipe book GUI is open, trigger a refresh
-                if (client.currentScreen instanceof net.minecraft.screen.RecipeScreen) {
-                    // Close and reopen to refresh
-                    client.currentScreen.close();
-                }
+            Object client = getInstanceMethod.invoke(null);
+            Field screenField = client.getClass().getField("currentScreen");
+            Object screen = screenField.get(client);
+            if (screen != null) {
+                closeScreenMethod.invoke(screen);
             }
         } catch (Exception e) {
             System.err.println("[AllTheRecipes] Error refreshing UI: " + e.getMessage());
@@ -88,44 +117,37 @@ public class FabricPlatformHelper implements IPlatformHelper {
         return "fabric";
     }
     
-    /**
-     * Gets all recipes from the server.
-     */
     @SuppressWarnings("unchecked")
-    private Collection<Recipe<?>> getAllRecipesFromServer() {
+    private Collection getAllRecipes() {
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
+            Object client = getInstanceMethod.invoke(null);
             
             // Try integrated server first (singleplayer)
-            if (client.getServer() != null) {
-                MinecraftServer server = client.getServer();
-                RecipeManager recipeManager = server.getRecipeManager();
-                return (Collection<Recipe<?>>) recipeManager.values();
+            Field serverField = client.getClass().getField("server");
+            Object server = serverField.get(client);
+            if (server != null) {
+                Object recipeManager = getRecipeManagerMethod.invoke(server);
+                Map recipes = (Map) recipesField.get(recipeManager);
+                return (Collection) recipes.values();
             }
             
-            // Fallback: try world server
-            if (client.world != null && client.world.getServer() != null) {
-                RecipeManager recipeManager = client.world.getServer().getRecipeManager();
-                return (Collection<Recipe<?>>) recipeManager.values();
+            // Try world server
+            Field worldField = client.getClass().getField("world");
+            Object world = worldField.get(client);
+            if (world != null) {
+                Field worldServerField = world.getClass().getField("server");
+                Object worldServer = worldServerField.get(world);
+                if (worldServer != null) {
+                    Object recipeManager = getRecipeManagerMethod.invoke(worldServer);
+                    Map recipes = (Map) recipesField.get(recipeManager);
+                    return (Collection) recipes.values();
+                }
             }
             
         } catch (Exception e) {
             System.err.println("[AllTheRecipes] Error getting recipes: " + e.getMessage());
         }
         
-        return java.util.Collections.emptyList();
-    }
-    
-    /**
-     * Gets the recipe book from a player object.
-     */
-    private RecipeBook getRecipeBook(Object player) {
-        if (player instanceof ClientPlayerEntity) {
-            return ((ClientPlayerEntity) player).getRecipeBook();
-        }
-        if (player instanceof ServerPlayerEntity) {
-            return ((ServerPlayerEntity) player).getRecipeBook();
-        }
-        return null;
+        return Collections.emptyList();
     }
 }

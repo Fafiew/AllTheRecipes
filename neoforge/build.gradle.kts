@@ -1,33 +1,28 @@
 plugins {
-    id("neoforge")
+    id("net.neoforged.gradle.userdev") version "7.0.99"
 }
 
 val minecraftVersion: String = "1.21.4"
-val neoforgeVersion: String = "52.0.19"
+val neoforgeVersion: String = "7.0.99"
+
+repositories {
+    maven("https://maven.neoforged.net/releases")
+}
+
+base {
+    archivesName = "alltherecipes-neoforge"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 dependencies {
-    // Common core module - compile against it
+    // Common core module
     implementation(project(":common"))
     
     // NeoForge
-    neoForge("net.neoforged:neoforge:${minecraftVersion}-${neoforgeVersion}")
-    
-    // Minecraft
-    minecraft("com.mojang:minecraft:${minecraftVersion}")
-    mappings(loom.officialMojangMappings())
+    implementation("net.neoforged:neoforge:${minecraftVersion}-${neoforgeVersion}")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-}
-
-minecraft {
-    version = "${minecraftVersion}-${neoforgeVersion}"
-    runDir = "run"
-}
-
-neoForge {
-    version = "${minecraftVersion}-${neoforgeVersion}"
-    minecraftVersion = minecraftVersion
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
 }

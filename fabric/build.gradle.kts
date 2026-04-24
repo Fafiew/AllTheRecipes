@@ -1,24 +1,39 @@
 plugins {
-    id("fabric")
+    id("fabric-loom")
 }
 
 val minecraftVersion: String = "1.21.4"
+val yarnVersion: String = "1.21.4+build.8"
+val loaderVersion: String = "0.16.9"
+val fabricApiVersion: String = "0.108.0+1.21.4"
+
+repositories {
+    maven("https://maven.fabricmc.net/")
+}
 
 dependencies {
-    // Common core module - compile against it
+    // Common core module
     implementation(project(":common"))
-    
-    // Fabric API
-    modImplementation("net.fabricmc:fabric-api:fabric-api")
     
     // Minecraft and mappings
     minecraft("com.mojang:minecraft:${minecraftVersion}")
-    mappings(loom.yarn())
+    mappings("net.fabricmc:yarn:${yarnVersion}:v2")
     
-    // Fabric loader
-    modImplementation("net.fabricmc:fabric-loader")
+    // Fabric Loader
+    modImplementation("net.fabricmc:fabric-loader:${loaderVersion}")
+    
+    // Fabric API for client events
+    modApi("net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}")
 }
 
-fabric {
-    version = "0.15.11"
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.processResources {
+    inputs.property("version", project.version)
+    filesMatching("fabric.mod.json") {
+        expand("version" to project.version)
+    }
 }

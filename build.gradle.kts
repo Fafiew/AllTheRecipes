@@ -1,9 +1,4 @@
-plugins {
-    id("fabric") version "0.15.11" apply false
-    id("neoforge") version "1.21.4-52.0.19" apply false
-    id("forge") version "1.21.4-52.0.19" apply false
-    id("fabric-loom-basic") version "0.15.11" apply false
-}
+// Root build.gradle.kts - AllTheRecipes Multi-Loader Minecraft Mod
 
 allprojects {
     group = "com.alltherecipes"
@@ -20,7 +15,7 @@ allprojects {
 subprojects {
     apply(plugin = "java")
 
-    java {
+    configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
