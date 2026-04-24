@@ -1,4 +1,4 @@
-// forge module not configured yet - using neoforge instead
+// neofore module - using placeholder until we confirm correct version
 plugins {
     id("java-library")
 }
