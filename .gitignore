@@ -22,6 +22,9 @@ Thumbs.db
 run/
 out/
 
+# Releases - keep these in version control
+!/releases/*.jar
+
 # Fabric
 *.accesswidener
 *.mixins.json
