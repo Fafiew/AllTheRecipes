@@ -1,20 +1,26 @@
 pluginManagement {
     repositories {
         gradlePluginPortal()
-        maven("https://maven.fabricmc.net/") {
+        maven("https://maven.neoforged.net/releases") {
             content {
-                includeGroup("net.fabricmc")
-                includeGroup("fabric-loom")
+                includeGroup("net.neoforged")
+                includeGroupByRegex("net\\.neoforged\\..*")
+            }
+        }
+        maven("https://maven.minecraftforge.net/") {
+            content {
+                includeGroup("net.minecraftforge")
+                includeGroupByRegex("net\\.minecraftforge\\..*")
             }
         }
     }
 }
 
 plugins {
-    id("fabric-loom") version "1.8.11" apply false
+    id("net.neoforged.gradle.userdev") version "7.1.25" apply false
 }
 
 rootProject.name = "AllTheRecipes"
 
 include("common")
-include("fabric")
+include("neoforge")

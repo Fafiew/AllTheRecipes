@@ -1,12 +1,13 @@
 plugins {
-    id("net.neoforged.gradle.userdev") version "7.0.99"
+    id("net.neoforged.gradle.userdev") version "7.1.25"
 }
 
-val minecraftVersion: String = "1.21.4"
-val neoforgeVersion: String = "7.0.99"
+val minecraftVersion: String = "21.11.42"
+val neoforgeVersion: String = "21.11.42"
 
 repositories {
     maven("https://maven.neoforged.net/releases")
+    maven("https://maven.minecraftforge.net/")
 }
 
 base {
@@ -20,7 +21,7 @@ dependencies {
     implementation(project(":common"))
     
     // NeoForge
-    implementation("net.neoforged:neoforge:${minecraftVersion}-${neoforgeVersion}")
+    implementation("net.neoforged:neoforge:${minecraftVersion}")
 }
 
 tasks.withType<JavaCompile> {
